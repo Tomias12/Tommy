@@ -61,3 +61,12 @@ def test_track_metadata_qobuz():
     assert t.tracknumber == 9
     assert t.discnumber == 1
     assert t.composer == "John Darnielle"
+
+
+def test_album_metadata_qobuz_without_genre():
+    """An album response without `genre`/`genres_list` must not raise."""
+    resp = {
+        k: v for k, v in qobuz_album_resp.items() if k not in ("genre", "genres_list")
+    }
+    m = AlbumMetadata.from_qobuz(resp)
+    assert m.genre == []

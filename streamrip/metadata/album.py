@@ -84,7 +84,16 @@ class AlbumMetadata:
     def from_qobuz(cls, resp: dict) -> AlbumMetadata:
         album = resp.get("title", "Unknown Album")
         tracktotal = resp.get("tracks_count", 1)
-        genre = [safe_get(resp, "genre", "name")] or resp.get("genre") or []
+        # `genres_list` is the genre hierarchy returned by Qobuz, e.g.
+        # ["Pop/Rock", "Pop/Rock→Rock"], which expands to ["Pop", "Rock"].
+        # For some accounts it is a flat, localised list of leaf names instead,
+        # in which case `genre.name` carries the canonical genre (see #618).
+        raw_genres = [g for g in (resp.get("genres_list") or []) if isinstance(g, str)]
+        if any("/" in g or "\u2192" in g for g in raw_genres):
+            genre = raw_genres
+        else:
+            genre_name = safe_get(resp, "genre", "name")
+            genre = [genre_name] if genre_name else raw_genres
         genres = list(set(genre_clean.findall("/".join(genre))))
         date = resp.get("release_date_original") or resp.get("release_date")
         year = date[:4] if date is not None else "Unknown"
